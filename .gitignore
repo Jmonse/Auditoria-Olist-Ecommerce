@@ -1,0 +1,19 @@
+# Entorno virtual (no queremos subir las librerías instaladas, solo el código)
+.venv/
+env/
+venv/
+ENV/
+
+# Datos pesados (GitHub tiene límites de tamaño y no es prolijo subir datasets crudos)
+*.csv
+*.xlsx
+*.zip
+*.sqlite
+
+# Archivos de sistema y temporales de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
