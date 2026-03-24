@@ -1,14 +1,16 @@
-# Entorno virtual (no queremos subir las librerías instaladas, solo el código)
+# Entorno virtual
 .venv/
 env/
 venv/
 ENV/
 
-# Datos pesados (GitHub tiene límites de tamaño y no es prolijo subir datasets crudos)
+# Datos pesados
 *.csv
-*.xlsx
 *.zip
 *.sqlite
+
+# Excepción: reportes generados por el análisis
+!reporte_auditoria_olist.xlsx
 
 # Archivos de sistema y temporales de Python
 __pycache__/
