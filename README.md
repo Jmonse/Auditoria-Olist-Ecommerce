@@ -92,7 +92,7 @@ Auditoria-Olist-Ecommerce/
 
 1. **Clonar el repositorio y crear el entorno virtual:**
 ```bash
-git clone [https://github.com/Jmonse/Auditoria-Olist-Ecommerce.git](https://github.com/Jmonse/Auditoria-Olist-Ecommerce.git)
+git clone https://github.com/Jmonse/Auditoria-Olist-Ecommerce.git
 cd Auditoria-Olist-Ecommerce
 python -m venv .venv
 source .venv/Scripts/activate   # Windows (Git Bash)
