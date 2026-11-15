@@ -1,9 +1,9 @@
-# 📊 Auditoría de Integridad Contable y Performance Logística — Olist E-commerce
+# 📊 Auditoría de Integridad de Cobros y Performance Logística — Olist E-commerce
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)
 ![SQL](https://img.shields.io/badge/SQL-SQLite%20%7C%20ANSI-orange?logo=sqlite)
 ![pandas](https://img.shields.io/badge/pandas-2.x-lightgrey?logo=pandas)
-![Status](https://img.shields.io/badge/Estado-Producción-success)
+![Status](https://img.shields.io/badge/Estado-Completo-success)
 
 **Autor:** Jonathan Monserrat ([@Jmonse](https://github.com/Jmonse))  
 **Stack:** Python · SQL (SQLite) · pandas · Matplotlib · Seaborn · OpenPyXL  
@@ -11,14 +11,18 @@
 
 ---
 
-## 📌 Descripción y Enfoque de Auditoría
+## 🎯 Resumen Ejecutivo
 
-Proyecto de **Data Assurance y Control de Gestión** aplicado sobre el ecosistema de Olist (Brasil). A partir de la carga relacional de las tablas en un motor **SQLite**, se ejecutan pruebas sustantivas de integridad financiera, corte de operaciones (devengado) y cumplimiento de niveles de servicio logístico (SLA):
+Este proyecto aplica reglas de control interno y auditoría financiera sobre 99.441 órdenes reales del marketplace Olist (Brasil) mediante **SQL (SQLite) y Python**. El objetivo es detectar fugas de cobro, cuantificar saldos de anticipos al cierre mensual y medir el cumplimiento real de plazos de entrega (SLA) por estado sin sesgos de volumen. El entregable final automatiza un reporte ejecutivo en Excel de 5 pestañas listo para revisión operativa.
 
-1. **Integridad de Ingresos y Cobros (Pruebas 1A y 1B):** Cruce relacional (`LEFT JOIN`) entre órdenes entregadas y registros de pago para identificar entregas sin respaldo financiero y transacciones con importes nulos o $\le 0$.
-2. **Pasivos Contingentes / Reembolsos (Prueba 2):** Cuantificación de órdenes en estado `canceled` o `unavailable` que registran cobros efectivos, determinando la exposición financiera a devoluciones.
-3. **Corte de Operaciones / Devengado (Prueba 3):** Identificación de operaciones aprobadas en un período contable ($t$) y entregadas en un período posterior ($t+1$), cuantificando anticipos de clientes / ingresos diferidos al cierre mensual.
-4. **Performance Logística y SLA Normalizado (Prueba 4):** Evaluación de tiempos de entrega (*Lead Time*), tasa real de demora crítica ($>30$ días sobre órdenes entregadas) e incumplimiento de fecha prometida por estado, evitando el sesgo de conteos absolutos.
+---
+
+## 🧠 Enfoque de Auditoría y Pruebas Sustantivas
+
+1. **Integridad de Cobros (Pruebas 1A y 1B):** Cruce relacional (`LEFT JOIN`) entre órdenes entregadas y registros de pago para aislar entregas sin respaldo financiero y transacciones con importes nulos o $\le 0$.
+2. **Exposición por Cancelaciones (Prueba 2):** Cuantificación de órdenes en estado `canceled` o `unavailable` que registran cobros efectivos, determinando el monto sujeto a conciliación contra devoluciones emitidas.
+3. **Corte Patrimonial al Cierre Mensual (Prueba 3):** Determinación del stock de órdenes aprobadas hasta el último día de cada mes calendario y aún pendientes de entrega a esa fecha (saldo de anticipos de clientes al cierre).
+4. **Performance Logística y SLA Normalizado (Prueba 4):** Evaluación de tasa de incumplimiento de fecha prometida (`delivered > estimated`) y demora estructural ($>30$ días) sobre órdenes efectivamente entregadas (`96.470`), aplicando un umbral muestral de $n \ge 100$ por estado para evitar distorsiones por bajo volumen.
 
 ---
 
@@ -30,29 +34,36 @@ Proyecto de **Data Assurance y Control de Gestión** aplicado sobre el ecosistem
 | **Órdenes Entregadas (Base SLA)** | 96.470 | Denominador real para indicadores de entrega |
 | **Entregas sin Respaldo de Pago (Prueba 1A)** | 1 orden (0,001%) | ID `bfbd0f9bdef84302105ad712db648a6c` |
 | **Registros de Pago con Importe $\le 0$ (Prueba 1B)** | 9 registros | Anomalías de registro en tabla `payments` |
-| **Órdenes Canceladas/No Disp. con Cobro (Prueba 2)** | 1.231 órdenes | **R$ 269.735,11** expuestos a pasivo por reembolso |
-| **Corte Intermensual / Ingresos Diferidos (Prueba 3)** | 34.881 órdenes | **R$ 5.929.539,13** aprobados en mes $t$ y entregados en $t+1$ |
-| **Tasa Global de Demora Crítica ($>30$ días)** | **4,27%** (4.117 / 96.470) | Estados más críticos: **AM (31,03%)**, **RR (29,27%)**, **AL (24,18%)** |
-| **Incumplimiento de Fecha Prometida (SLA)** | **6,77%** | Mayor desvío contractual en **AL (21,41%)** y **MA (17,43%)** |
-| **Medio de Pago Dominante (Devengado)** | Tarjeta de Crédito (**78,46%**) | R$ 12.101.094,88 sobre órdenes efectivamente entregadas |
+| **Órdenes Canceladas/No Disp. con Cobro (Prueba 2)** | 1.231 órdenes | **R$ 269.735,11** de exposición potencial a verificar |
+| **Pico Saldo Anticipos al Cierre (Prueba 3)** | **R$ 650.720,07** | Corte **2018-03** (3.778 órdenes cobradas pendientes de entrega) |
+| **Incumplimiento Global de Fecha Prometida (SLA)** | **6,77%** | Peor desempeño ($n \ge 100$): **AL (21,41%)**, **MA (17,43%)**, **SE (15,22%)** |
+| **Tasa Global de Demora Estructural ($>30$ días)** | **4,27%** (4.117 / 96.470) | Estados más distantes: **AM (31,03%)**, **RR (29,27%)**, **AL (24,18%)** |
+| **Medio de Pago Dominante (GMV Entregado)** | Tarjeta de Crédito (**78,46%**) | R$ 12.101.094,88 en cobros brutos sobre órdenes entregadas |
 
 ---
 
 ## 📊 Visualizaciones
 
-### Ingresos Devengados por Método de Pago (Órdenes Entregadas)
+### Cobros Brutos (GMV) por Método de Pago (Órdenes Entregadas)
 ![Métodos de pago](docs/img/grafico_metodos_pago.png)
 
-### Top 10 Estados por Tasa Real de Demora Crítica (>30 días)
+### Top 10 Estados por Incumplimiento de Fecha Prometida (SLA, $n \ge 100$)
 ![Demoras geográficas](docs/img/grafico_demoras_geograficas.png)
 
 ---
 
 ## 📋 Recomendaciones de Control Interno
 
-- **Controles de Cierre y Contingencias:** Implementar un bloqueo automático que impida marcar órdenes como `delivered` sin validación de cobro acreditado, y conciliar periódicamente las 1.231 órdenes canceladas/no disponibles con cobro (`R$ 269.735,11`) contra el auxiliar de reembolsos emitidos.
-- **Reconocimiento de Ingresos (Devengado):** Automatizar el asiento de corte mensual para reclasificar como *Anticipos de Clientes* las órdenes aprobadas pendientes de entrega al último día hábil de cada mes (`R$ 5,93M` acumulados en el período auditado).
-- **Gestión Logística Diferenciada:** Rediseñar los acuerdos con operadores logísticos en la región Norte/Nordeste (**AM, RR, AL, PA**), donde más de 1 de cada 5 entregas supera los 30 días, priorizando la reducción del incumplimiento contractual en **Alagoas (21,41% fuera de plazo)**.
+- **Controles de Cierre y Devoluciones:** Implementar una validación automática que impida marcar órdenes como `delivered` sin registro de cobro acreditado, y conciliar periódicamente las 1.231 órdenes canceladas/no disponibles con cobro (`R$ 269.735,11`) contra el auxiliar de reembolsos emitidos.
+- **Corte Contable Mensual:** Automatizar el reporte de órdenes aprobadas pendientes de entrega al último día hábil de cada mes (con picos superiores a `R$ 650k` en cierres de alta demanda) para respaldar la reclasificación contable de anticipos de clientes.
+- **Gestión Logística por SLA Real:** Priorizar la renegociación de operadores logísticos en **Alagoas (`21,41%` fuera de plazo)**, **Maranhão (`17,43%`)** y **Sergipe (`15,22%`)**. En estados aislados como **Amazonas (`31,03%` $>30$ días, pero solo `2,76%` fuera de plazo)**, el sistema ya ajusta la promesa de entrega a la distancia real, por lo que el foco operativo debe centrarse en reducir los desvíos contractuales del Nordeste.
+
+---
+
+## 💡 Lecciones Aprendidas (Iteración Metodológica)
+
+- **De conteos absolutos a tasas normalizadas:** En una primera versión del análisis, Río de Janeiro (`RJ`) figuraba como el estado más problemático por acumular el mayor número absoluto de demoras (`1.079` pedidos). Al normalizar por el volumen total de entregas de cada estado (`12.350` en RJ) y separar la distancia estructural (>30 días) del incumplimiento de fecha prometida (SLA), el diagnóstico cambió por completo: `RJ` cae al 7.º puesto (`12,11%` fuera de plazo) y emergen los verdaderos cuellos de botella en el Nordeste (`AL` y `MA`).
+- **Stock vs. Flujo en auditoría de corte:** El análisis de corte mensual se refactorizó para calcular la foto patrimonial al último día de cada cierre en lugar de sumar flujos intermensuales entre períodos.
 
 ---
 
@@ -66,9 +77,38 @@ Auditoria-Olist-Ecommerce/
 ├── notebooks/
 │   └── 01_Auditoria_Olist.ipynb   # Notebook con motor SQLite, pruebas y visualización
 ├── outputs/
-│   └── reporte_auditoria_olist.xlsx # Reporte ejecutivo multi-hoja (4 pestañas)
+│   └── reporte_auditoria_olist.xlsx # Reporte ejecutivo multi-hoja (5 pestañas)
 ├── sql/
 │   └── auditoria_olist.sql        # Queries SQL estructuradas (CTEs, JOINs, SLA)
 ├── .gitignore
 ├── README.md
 └── requirements.txt
+
+```
+
+---
+
+## 🚀 Cómo Ejecutar el Proyecto
+
+1. **Clonar el repositorio y crear el entorno virtual:**
+```bash
+git clone [https://github.com/Jmonse/Auditoria-Olist-Ecommerce.git](https://github.com/Jmonse/Auditoria-Olist-Ecommerce.git)
+cd Auditoria-Olist-Ecommerce
+python -m venv .venv
+source .venv/Scripts/activate   # Windows (Git Bash)
+source .venv/bin/activate       # Linux / macOS
+pip install -r requirements.txt
+
+```
+
+
+2. **Descargar los datos fuente:**
+Descargá el dataset [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) desde Kaggle y copiá estos tres archivos dentro de la carpeta `data/`:
+* `olist_orders_dataset.csv`
+* `olist_order_payments_dataset.csv`
+* `olist_customers_dataset.csv`
+
+
+3. **Ejecutar el análisis:**
+Abrí y ejecutá todas las celdas de `notebooks/01_Auditoria_Olist.ipynb` (o ejecutá las consultas directamente desde `sql/auditoria_olist.sql` sobre SQLite).
+

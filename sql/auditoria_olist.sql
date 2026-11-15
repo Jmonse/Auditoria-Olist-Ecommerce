@@ -3,7 +3,7 @@
 -- Motor: SQLite / ANSI SQL (CTEs, LEFT JOIN, Agregaciones Condicionales)
 -- ============================================================================
 
--- PRUEBA 1A: Integridad de Ingresos - Órdenes entregadas sin respaldo de cobro
+-- PRUEBA 1A: Integridad de Cobros - Órdenes entregadas sin respaldo de pago
 SELECT
     o.order_id,
     o.customer_id,
@@ -27,42 +27,45 @@ LEFT JOIN orders o ON p.order_id = o.order_id
 WHERE p.payment_value IS NULL
    OR p.payment_value <= 0;
 
--- PRUEBA 2: Pasivos Contingentes / Reembolsos - Órdenes canceladas o no disponibles con cobro
+-- PRUEBA 2: Exposición Potencial por Cancelaciones - Órdenes canceladas/no disp. con cobro
 SELECT
     o.order_status,
     COUNT(DISTINCT o.order_id) AS ordenes_afectadas,
     COUNT(p.payment_sequential) AS transacciones_pago,
-    ROUND(SUM(p.payment_value), 2) AS monto_expuesto_reembolso
+    ROUND(SUM(p.payment_value), 2) AS monto_expuesto_brl
 FROM orders o
 INNER JOIN payments p ON o.order_id = p.order_id
 WHERE o.order_status IN ('canceled', 'unavailable')
   AND p.payment_value > 0
 GROUP BY o.order_status
-ORDER BY monto_expuesto_reembolso DESC;
+ORDER BY monto_expuesto_brl DESC;
 
--- PRUEBA 3: Corte de Operaciones / Devengado (Revenue Recognition)
--- Órdenes aprobadas en un mes calendario y entregadas en un mes posterior (anticipos al cierre)
-WITH pagos_por_orden AS (
-    SELECT
-        order_id,
-        ROUND(SUM(payment_value), 2) AS total_pagado
+-- PRUEBA 3: Corte de Operaciones (Stock Patrimonial al Cierre de Cada Mes)
+-- Órdenes aprobadas hasta el último día del mes y aún no entregadas a esa fecha
+WITH meses AS (
+    SELECT DISTINCT strftime('%Y-%m', order_approved_at) AS mes
+    FROM orders
+    WHERE order_approved_at IS NOT NULL
+),
+pagos AS (
+    SELECT order_id, ROUND(SUM(payment_value), 2) AS total_cobrado
     FROM payments
     GROUP BY order_id
 )
 SELECT
-    strftime('%Y-%m', o.order_approved_at) AS periodo_aprobacion,
-    COUNT(o.order_id) AS ordenes_diferidas,
-    ROUND(SUM(p.total_pagado), 2) AS ingresos_diferidos_brl
-FROM orders o
-INNER JOIN pagos_por_orden p ON o.order_id = p.order_id
-WHERE o.order_status = 'delivered'
-  AND o.order_approved_at IS NOT NULL
-  AND o.order_delivered_customer_date IS NOT NULL
-  AND strftime('%Y-%m', o.order_delivered_customer_date) > strftime('%Y-%m', o.order_approved_at)
-GROUP BY periodo_aprobacion
-ORDER BY periodo_aprobacion;
+    m.mes AS cierre_mensual,
+    COUNT(o.order_id) AS ordenes_pendientes_cierre,
+    ROUND(SUM(p.total_cobrado), 2) AS saldo_anticipos_brl
+FROM meses m
+INNER JOIN orders o
+    ON o.order_status = 'delivered'
+   AND date(o.order_approved_at) <= date(m.mes || '-01', '+1 month', '-1 day')
+   AND date(o.order_delivered_customer_date) > date(m.mes || '-01', '+1 month', '-1 day')
+INNER JOIN pagos p ON p.order_id = o.order_id
+GROUP BY m.mes
+ORDER BY m.mes;
 
--- PRUEBA 4: Performance Logística y SLA Normalizado por Estado (Universo completo)
+-- PRUEBA 4: Performance Logística y SLA Normalizado por Estado
 WITH metricas_entrega AS (
     SELECT
         c.customer_state AS estado,
@@ -85,10 +88,10 @@ SELECT
     estado,
     COUNT(order_id) AS total_entregas,
     ROUND(AVG(lead_time_dias), 1) AS lead_time_promedio_dias,
-    SUM(es_demora_critica) AS demoras_criticas_30d,
-    ROUND(SUM(es_demora_critica) * 100.0 / COUNT(order_id), 2) AS tasa_demora_critica_pct,
     SUM(es_fuera_de_plazo) AS entregas_fuera_plazo,
-    ROUND(SUM(es_fuera_de_plazo) * 100.0 / COUNT(order_id), 2) AS tasa_fuera_plazo_pct
+    ROUND(SUM(es_fuera_de_plazo) * 100.0 / COUNT(order_id), 2) AS tasa_fuera_plazo_pct,
+    SUM(es_demora_critica) AS demoras_criticas_30d,
+    ROUND(SUM(es_demora_critica) * 100.0 / COUNT(order_id), 2) AS tasa_demora_critica_pct
 FROM metricas_entrega
 GROUP BY estado
-ORDER BY tasa_demora_critica_pct DESC, total_entregas DESC;
+ORDER BY tasa_fuera_plazo_pct DESC, total_entregas DESC;
