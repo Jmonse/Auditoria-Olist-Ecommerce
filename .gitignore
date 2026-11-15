@@ -1,21 +1,12 @@
-# Entorno virtual
+# Entornos y caché
 .venv/
-env/
-venv/
-ENV/
-
-# Datos pesados
-*.csv
-*.zip
-*.sqlite
-
-# Excepción: reportes generados por el análisis
-!reporte_auditoria_olist.xlsx
-
-# Archivos de sistema y temporales de Python
+.idea/
 __pycache__/
-*.py[cod]
-*$py.class
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
+
+# Datos crudos pesados (ignorar data/, conservar outputs/ y docs/img/)
+data/
+*.zip
+*.sqlite
